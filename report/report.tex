@@ -1,0 +1,125 @@
+\documentclass[A_4paper,12pt]{article}
+\usepackage{polski}
+\usepackage{graphicx, xcolor} % Required for the inclusion of images
+\usepackage{natbib} % Required to change bibliography style to APA
+\usepackage{amsmath} % Required for some math elements 
+\usepackage[utf8]{inputenc}
+\setlength\parindent{0pt} % Removes all indentation from paragraphs
+\usepackage{svg}
+\usepackage{geometry}
+\usepackage{afterpage}
+\usepackage{caption}
+\usepackage{layout}
+\usepackage{tabularx}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{capt-of}
+
+\renewcommand{\labelenumi}{\alph{enumi}.} % Make numbering in the enumerate environment by 
+%\usepackage{times} % Uncomment to use the Times New Roman font
+
+\title{Laboratorium Informatyki w Medycynie \\ 3 punkt kontrolny} % Title
+\author{Szymon \textsc{Gramza} 109785  \\ Przemysław \textsc{Hoffmann} 109786} % Author name
+
+\date{23.05.2015r.} % Date for the report
+
+\begin{document}
+
+\maketitle % Insert the title, author and date
+
+\begin{center}
+\begin{tabular}{l r}
+Prowadzący: & mgr inż. Tomasz Pawlak \\
+Temat zadania: & symulator tomografu komputerowego
+\end{tabular}
+\end{center}
+
+\newpage
+
+\section{Opis problemu}
+Tematem projektu zaliczeniowego jest symulator tomografu komputerowego.
+Zgodnie z wymaganiami symulator ten powinien pozwala na:
+\begin{itemize}
+\item akwizycję rzutów obrazów 1D z zadanego obrazu 2D
+\item prezentacje użytkownikowi tych rzutów
+\item rekonstrukcję obrazów 2D z rzutów 1D przy użyciu odwrotnej transformaty Radona
+\item prezentację zrekonstruowanego obrazu
+\end{itemize}
+Dodatkowo aplikacja pozwala w prosty sposób sterować głównymi parametrami symulatora.
+
+\subsection{Zasada działania}
+[definicja]
+[budowa]
+[schematy]
+[zasada działania]
+[problemy zagadnienia]
+[wprowadzenie ruchu obrotowego]
+
+\subsubsection{Generacje tomografów}
+Od czasów wynalezienia tomografu zmieniały koncepcje i usprawnienia mające na celu zwiększenie ich szybkości i wydajności.
+W związku z tym powastała poniższa klasyfikacja na generacje:
+\begin{itemize}
+\item Generacja I - skaner składał się z pojedynczego emitera i detektora. Lampa i detektor wykonywały ruchy translacyjne i rotacyjne.
+\item Generacja II - zwiekszono liczbę detektorów co zmniejszyło liczbę ruchów translacyjnych lampy.
+\item Generacja III - wyeliminowano ruch translacyjny poprzez rozmieszczenie detektorów na łuku pierścienia obracającego się razem z lampą dookoła pacjenta.
+\item Generacja IV - detektory umieszczone zostały na stałe na pierścienu, ruch obrotowy wykonuje tylko lampa.
+\end{itemize}
+
+
+\section{Opis rozwiązania}
+Poniżej znajduje się opis użytej technologii oraz lista zastosowanych algorytmów z wyróżnieniem na poszczególne etapy.
+\subsubsection{Technologia}
+Program zaimplementowany został w języku Python (wersja 2.7) z wykorzystaniem następujących bibliotek:
+\begin{itemize}
+\item tkinter - tworzenie, obsługa oraz zwalnianie interfejsu graficznego. 
+	Pozwala na intuicyjne poruszanie się po aplikacji, wczytywanie oraz zapisywanie przetwarzanych obrazów w szczególności wczytanie obrazu do generacji sinogramu, zapis sinogramu, wczytanie sinogramu, zapis zrekonstruowanego obrazu. Dodatkowo biblioteki użyto do wygodnego sterowania najważniejszymi parametrami działania symulatora.
+\item numpy - działania na macierzach, konwersje
+\end{itemize}
+\newpage
+Przyjęto model tomografu o następujących parametrach:
+\begin{itemize}
+\item alfa - kąt o który obracany jest układ emiterów
+\item beta - szerokość wiązki
+\item odległość układu emiterów od macierzy obrazu
+\item coś jeszcze
+\item szerokość filtra
+\end{itemize}
+
+\subsubsection{Algorytmy}
+W tej sekcji znajduje się opis poszczególnych etapów przetwarzania i użytych w tym celu algorytmów.
+W zakresie działania symulatora wyróżniamy głównie przetwarzanie wczytanego obrazu do postaci sinogramu, oraz rekonstrukcję otrzymanego sinogramu do postaci oryginalnej.
+\begin{itemize}
+\item W przypadku generowanie sinogramu, oryginalny obraz zostaje wczytany w skali szarości a następnie przechowany w pamięci w postaci lokalnej macierzy na której wykonywane są następujące obliczenia.
+*Bresenham
+*wyznaczanie łuku emiterów
+*środki detektorów
+*akwizycja
+
+
+\item Rekonstrukcja obrazu korzysta z wcześniejszych metod, jednak zmienia się kierunek emisji (emisja następuje od macierzy detektorów w kierunku emitera, który staje się odbiornikiem)
+*filtr
+\end{itemize}
+
+
+Poniżej znajduje się kilka pojęć, których zrozumienienie i wykorzystanie wymagane jest do rozwiązania projektu.
+\subsubsection{Transformata Radona}
+W roku 1905 W. Radon udowodnił następujące twierdzenie: „Obraz obiektu dwuwymiarowego można zrekonstruować na podstawie nieskończonej ilości rzutów jednowymiarowych”. Rzutowanie to odpowiada wykonywaniu na obiekcie pewnej transformacji, nazywanej Transformacją Radona.
+Po dokonaniu transformacji z otrzymanych wyników otrzymyje się sinogram, czyli wykres będący wizualizacją owych wyników.
+Dokonanie na sinogramie Odwrotnej Transformacji Radona umożliwia zrekonstruowanie obrazu obiektu. Zrekonstruowany obraz zawierał będzie pewne zniekształcenia, lecz wraz ze wzrostem liczby projekcji powinien co raz bardziej odzwierciedlać obraz sprzed transformacji.
+
+\subsubsection{Algorytm Bresenham'a}
+Służy do wyznaczania pikseli leżących na odcinku między dwoma punktami. W naszym zastosowaniu służy do wyznaczania pikseli obrazu, przez które przechodzi promień oraz wyznaczenia wartości pochłoniętego promieniowania.
+
+\section{Testy}
+Przeprowadzenie testów i jakaś funkcja oceny
+
+\section{Wnioski}
+Na podstawie testów, ocena implementacji, jakie parametry optymalne w funkcji np. rozmiaru obrazu, albo ogólnie
+
+\section{Ulepszenia}
+Na podstawie wniosków co można usprawnić, co było nie tak, co może być lepsze
+
+\section{Bibliografia}
+\bibliographystyle{apalike}
+\bibliography{sample}
+\end{document}
