@@ -47,7 +47,6 @@ int main (int argc, char **argv){
       }
       printf("\n");
  
- 
       /*fork - podzial na proces czytajacy i proces wykonujacy dostepy do sekcji
        *Dostep do pierwszej sekcji krytycznej - wybor sali (kazdy ma swoje preferencje co do sali ustalone
        *przez funkcje %rank. algorytm agrawala (kazdy proces ma swoj zegar)
@@ -82,6 +81,7 @@ int main (int argc, char **argv){
       parameters.rank = rank;
       parameters.size = size;
       parameters.semid = semid;
+      parameters.rooms = rooms;
       pthread_mutex_init(&(parameters.mutex), NULL);
       if (pthread_create(&readerThread, NULL, reader, &parameters)){
         printf("Błąd tworzenia wątka.\n");

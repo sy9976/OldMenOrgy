@@ -3,12 +3,6 @@
 
 #include "orgy.h"
 
-typedef struct {
-  int rank;
-  int size;
-  int semid;
-  pthread_mutex_t mutex;
-} threadParameters;
 
 static struct sembuf buf;
 

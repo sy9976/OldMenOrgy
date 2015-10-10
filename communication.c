@@ -54,6 +54,7 @@ void send_to_all(int rank, int* data, int count, int tag, int size){
 
 
 void get_sizes_rooms(Room *rooms, int nRooms, MPI_Status* status){
+  //MPI_Recv(rooms, nRooms, MPI_INT, 0, INIT, MPI_COMM_WORLD, status);
   int x;
   int i;
   for (i = 0; i < nRooms; i++){
