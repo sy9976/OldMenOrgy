@@ -1,0 +1,6 @@
+make
+mpirun -np P orgy S K M
+P - liczba procesów
+S - liczba sal
+K - liczba staruszek
+M - liczba staruszków
