@@ -4,8 +4,65 @@
 #include "orgy.h"
 
 int sectionClock = 0;
-bool ack1Collected;
-bool ack2Collected;
+bool ack1Collected = false;
+bool ack2Collected = false;
+bool inSec1 = false;
+bool inSec2 = false;
+int *bufferSec1;
+int epochNo = 0;
+
+void *reader(void *arg){ //monitor process
+  threadParameters *parameters = arg;
+  MPI_Status status;
+  int size = parameters->size;
+  int rank = parameters->rank;
+  int nRooms = parameters->nRooms;
+  //int clock = parameters->clock;
+  //int ackArray[size]; malloc, inicjalizacja
+  int i = 0;
+  int ackCounter = 0;
+  printf("[ID: %d] Rozpoczęcie wątka czytającego.\n", rank);
+  while(true) {
+    int data[3];
+
+    MPI_Recv(data, sizeof(data), MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    if (status.MPI_TAG == ROOM_REQ){
+      printf("[ID: %d][ROOM_REQ: %d] Odebrałem żądanie dostępu do sali: %d.\n", rank, status.MPI_SOURCE, data[1]);
+      //sprawdz czy to jest dostep do sali, o ktora ja sie ubiegam
+      if (!(ack1Collected) && (compare_priority_sec1(rank, status.MPI_SOURCE, sectionClock, data[0], data[1], nRooms))){
+        MPI_Send(data, sizeof(data), MPI_INT, status.MPI_SOURCE, ROOM_ACK, MPI_COMM_WORLD);
+      }
+      else{
+        bufferSec1[status.MPI_SOURCE] = data[0];
+      }
+    }
+    else if (status.MPI_TAG == ROOM_ACK){
+      printf("[ID: %d][ROOM_ACK: %d] Odebrałem zgodę do sali: %d.\n", rank, status.MPI_SOURCE, data[1]);
+      if (sectionClock == data[0]){
+        if (epochNo == data[2]){
+          ackCounter++;
+          if (ackCounter == size - 2){
+            printf("[ID: %d][ROOM_ACK: %d] Zebrałem zgody do sali: %d.\n", rank, status.MPI_SOURCE, data[1]);
+            ack1Collected = true;
+          }
+        }
+      }
+    }
+    else if (status.MPI_TAG == PEOPLE_REQ){
+
+    }
+    else if (status.MPI_TAG == PEOPLE_ACK){
+
+    }
+    else{
+      //syf
+    }
+  }
+  printf("[ID: %d] Zakończenie wątka czytającego.\n", rank);
+  //MPI_Finalize();
+  //exit(0);
+}
+
 
 int main (int argc, char **argv){
   MPI_Init(&argc, &argv);
@@ -18,6 +75,11 @@ int main (int argc, char **argv){
   int nRooms = atoi(argv[1]);
   int nWomen = atoi(argv[2]);
   int nMen = atoi(argv[3]);
+  bufferSec1 = (int*) malloc(nRooms * sizeof(*bufferSec1));
+  int i;
+  for (i = 0; i < nRooms; i++){
+    bufferSec1[i] = -1;
+  }
 
   if (argc < 4)
   {
@@ -95,16 +157,20 @@ int main (int argc, char **argv){
         printf("Błąd tworzenia wątka.\n");
         abort();
       }
-      preferencesData *preferencesArray;// = funckjaSzymona();
+      preferencesData *preferencesArray = get_preferences(rank, nRooms);
       while(true){
         int j;
         bool roomAchieved = false;
         for (i = 0; i < 3; i++){
           for (j = 0; j < nRooms; j++){
+            //oproznic buff
+            //przepisac j do zmiennej myRoom
+            //semafor na obie operacje
             if (!preferencesArray[j].sent){
-              int data[2];
+              int data[3];
               data[0] = sectionClock;
-              data[1] = 2;
+              data[1] = preferencesArray[j].room;
+              data[2] = epochNo;
               send_to_all(rank, data, sizeof(data), ROOM_REQ, size);
             }
             sleep(1000);
@@ -117,6 +183,7 @@ int main (int argc, char **argv){
           if (roomAchieved){
             break;
           }
+          epochNo++;
         }
         if (!roomAchieved){
           printf("[ID: %d][SEKCJA 1]Nie udało się uzyskać dostępu do żadnej sali.\n", rank);
@@ -124,6 +191,7 @@ int main (int argc, char **argv){
           continue;
         }
         ////////////////////////////////SEKCJA 1
+        //dostep do drugiej sekcji
         //
         //
         //
