@@ -111,4 +111,19 @@ int rank_priority(int rank1, int rank2){
   else return -1;
 }
 
+preferencesData* get_preferences(int rank, int nRooms){
+        preferencesData *rooms;
+  rooms = (preferencesData*) malloc(nRooms * sizeof(*rooms));
+        int prior = rank % nRooms;
+        int i;
+        for (i = 0; i < nRooms; i++){
+                rooms[i].room = prior;
+                rooms[i].sent = false;
+                if (prior == nRooms - 1) prior = 0;
+                else prior++;
+                //printf("INSIDE %d", prior);
+        }
+        return rooms;
+}
+
 

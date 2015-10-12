@@ -12,7 +12,9 @@ typedef struct {
 typedef struct {
   int rank;
   int size;
+  int nRooms;
   int semid;
+  int clock;
   pthread_mutex_t mutex;
   Room *rooms; 
 } threadParameters;
@@ -22,6 +24,12 @@ typedef struct {
   int room;
 } dataToCompare;
 
+typedef struct {
+  int room;
+  bool sent;
+} preferencesData;
+ 
+preferencesData* get_preferences(int nRooms, int rank);
 bool check_parameteres_correctness(int s, int k, int m);
 void initialize(int nRooms, int rank, int size, int nWomen, int nMen);
 Room* generate_rooms(int s, int k, int m);

@@ -22,6 +22,8 @@
 //messages types
 #define INIT 1
 #define ROOM_REQ 2
-
+#define ROOM_ACK 3
+#define PEOPLE_REQ 4
+#define PEOPLE_ACK 5
 
 #endif
