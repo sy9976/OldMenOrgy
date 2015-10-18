@@ -5,6 +5,8 @@
 #include "semaphores.h"
 #include "parameters.h"
 
+
+
 void *reader(void *arg);
 void end();
 void send_to_all(int rank, int* data, int count, int tag, int size);

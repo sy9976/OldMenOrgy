@@ -28,13 +28,13 @@ int get_semaphores(int rank, int count){
     MPI_Finalize();
     exit(1);
   }
-  if (semctl(semid, 0, SETVAL, (int)0) == -1){
+  if (semctl(semid, 0, SETVAL, (int)1) == -1){
     printf("[ID: %d] Błąd nadania wartości semaforowi.\n", rank);
     MPI_Finalize();
     exit(1);
   }
   if (count > 1) {
-    if (semctl(semid, 1, SETVAL, (int)1) == -1) {
+    if (semctl(semid, 1, SETVAL, (int)0) == -1) {
       printf("[ID: %d] Błąd nadania wartości semaforowi.\n", rank);
       MPI_Finalize();
       exit(1);

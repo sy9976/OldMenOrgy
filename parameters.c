@@ -81,6 +81,16 @@ bool compare_priority_sec1(int rank1, int rank2, int clock1, int clock2, int roo
   }
 }
 
+bool compare_priority_sec2(int rank1, int rank2, int clock1, int clock2){
+  int clockPriority = clock_priority(clock1, clock2);
+  if (clockPriority == 1) return true;
+  else if (clockPriority == 0) return false;
+  else{
+      if (rank_priority(rank1, rank2) == 1) return true;
+      else return false;
+  }
+}
+
 int clock_priority(int clock1, int clock2){
   if (clock1 < clock2) return 0;
   else if (clock1 > clock2) return 1;
@@ -109,6 +119,46 @@ int rank_priority(int rank1, int rank2){
   if (rank1 < rank2) return 0;
   else if (rank1 > rank2) return 1;
   else return -1;
+}
+
+preferencesData* get_preferences(int rank, int nRooms){
+        preferencesData *rooms;
+  rooms = (preferencesData*) malloc(nRooms * sizeof(*rooms));
+        int prior = rank % nRooms;
+        int i;
+        for (i = 0; i < nRooms; i++){
+                rooms[i].room = prior;
+                rooms[i].sent = false;
+                if (prior == nRooms - 1) prior = 0;
+                else prior++;
+                //printf("INSIDE %d", prior);
+        }
+        return rooms;
+}
+
+int* assign_people(int nWomen, int nMen, int roomCapacity){
+        int k = nWomen;
+        int m = nMen;
+        int *assign_data;
+        assign_data = (int*) malloc(2 * sizeof(*assign_data));
+        assign_data[0] = 0;
+        assign_data[1] = 0;
+        int i;
+        int turn = 0;
+        for (i = 0; i < roomCapacity; i++){ //staram się zapełnić salę
+                if (turn%2==0){ //biere kobitki
+                        if(k<=0) break;
+                        assign_data[0]++;
+                        k--;
+                        if(m>0) turn++;
+                } else { //biere facetów
+                        if(m<=0) break;
+                        assign_data[1]++;
+                        m--;
+                        if(k>0) turn++;
+                }
+        }
+        return assign_data;
 }
 
 
