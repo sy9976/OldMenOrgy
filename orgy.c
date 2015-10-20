@@ -16,6 +16,7 @@ int nWomen = 0;
 int nMen = 0;
 int peopleReqNo = -1;
 bool sec2Apply = false;
+int ack1Counter = 0;
 int ack2Counter = 0;
 int myPeopleStatus = APPLY;
 
@@ -27,17 +28,18 @@ void *reader(void *arg){ //monitor process
   int nRooms = parameters->nRooms;
   int semid_sec1 = parameters->semid_sec1;
   int semid_sec2 = parameters->semid_sec2;
-  //int clock = parameters->clock;
-  //int ackArray[size]; malloc, inicjalizacja
   int i = 0;
-  int ack1Counter = 0;
+  //int ack1Counter = 0;
+  if(CLOCK_DISPLAY) printf("%ld ",clock());
   printf("[ID: %d] Rozpoczęcie wątka czytającego.\n", rank);
   while(true) {
     int data[3];
-
     MPI_Recv(data, sizeof(data), MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
     if (status.MPI_TAG == ROOM_REQ){
-      //printf("[ID: %d][ROOM_REQ: %d] Odebrałem żądanie dostępu do sali: %d.\n", sectionClock, rank, status.MPI_SOURCE, data[1]);
+    	if(REQ_DISPLAY) {
+    		if(CLOCK_DISPLAY) printf("%ld ",clock());
+      	printf("[CLOCK: %d][ID: %d][ROOM_REQ: %d] Odebrałem żądanie dostępu do sali: %d.\n", sectionClock, rank, status.MPI_SOURCE, data[1]);
+      	}
       sem_down(semid_sec1, 0);
       if (data[1] == myRoom){
         if (!(ack1Collected) && (compare_priority_sec1(rank, status.MPI_SOURCE, sectionClock, data[0], data[1], nRooms))){
@@ -58,10 +60,15 @@ void *reader(void *arg){ //monitor process
     }
     else if (status.MPI_TAG == ROOM_ACK){
       //printf("[CLOCK: %d][ID: %d][ROOM_ACK: %d] Odebrałem zgodę do sali: %d.\n", rank, status.MPI_SOURCE, data[1]);
-      if (sectionClock == data[0]){
+      if ((sectionClock == data[0]) && (myRoom == data[1])){
         if (epochNo == data[2]){
+        	if(ACK_DISPLAY) {
+        		if(CLOCK_DISPLAY) printf("%ld ",clock());
+        		printf("[CLOCK: %d][ID: %d][ROOM_ACK: %d][SALA: %d][EPOCHNO:%d][COUNTER: %d]\n", sectionClock, rank, status.MPI_SOURCE, data[1], epochNo, ack1Counter);
+        		}
           ack1Counter++;
           if (ack1Counter == size - 2){
+            if(CLOCK_DISPLAY) printf("%ld ",clock());
             printf("[CLOCK: %d][ID: %d][ROOM_ACK: %d] Zebrałem zgody do sali: %d.\n", sectionClock, rank, status.MPI_SOURCE, data[1]);
             ack1Collected = true;
             ack1Counter = 0;
@@ -71,7 +78,10 @@ void *reader(void *arg){ //monitor process
     }
     else if (status.MPI_TAG == PEOPLE_REQ){
       //printf("[CLOCK: %d][ID: %d][PEOPLE_REQ: %d] Odebrałem żądanie dostępu do ludzikow.\n", sectionClock, rank, status.MPI_SOURCE);
-      if (sec2Apply){
+      if (ack2Collected){ 
+      	bufferSec2[status.MPI_SOURCE] = data[0];
+      	}
+      else if (sec2Apply){
         if (data[1] == myPeopleStatus){
           sem_down(semid_sec2, 0);
 
@@ -101,9 +111,10 @@ void *reader(void *arg){ //monitor process
       //printf("[CLOCK: %d][ID: %d][PEOPLE_ACK: %d] Odebrałem zgode na dostep do ludzikow.\n", sectionClock, rank, status.MPI_SOURCE);
       if (sectionClock == data[0]){
           ack2Counter++;
-          int tmp = peopleReqNo * (size - 2);
+          //int tmp = peopleReqNo * (size - 2);
           //printf("[CLOCK: %d][ID: %d][PEOPLE_ACK: %d] Zebrałem %d zgod do ludzikow, potrzebuje %d\n", sectionClock, rank, status.MPI_SOURCE, ack2Counter, tmp);
           if (ack2Counter == peopleReqNo * (size - 2)){
+            if(CLOCK_DISPLAY) printf("%ld ",clock());
             printf("[CLOCK: %d][ID: %d][PEOPLE_ACK: %d] Zebrałem zgody do ludzikow.\n", sectionClock, rank, status.MPI_SOURCE);
             ack2Collected = true;
             ack2Counter = 0;
@@ -118,6 +129,7 @@ void *reader(void *arg){ //monitor process
       //syf
     }
   }
+  if(CLOCK_DISPLAY) printf("%ld ",clock());
   printf("[CLOCK: %d][ID: %d] Zakończenie wątka czytającego.\n", sectionClock, rank);
   //MPI_Finalize();
   //exit(0);
@@ -135,26 +147,29 @@ int main (int argc, char **argv){
   int nRooms = atoi(argv[1]);
   nWomen = atoi(argv[2]);
   nMen = atoi(argv[3]);
-  bufferSec1 = (bufferData*) malloc(nRooms * sizeof(*bufferSec1));
-  bufferSec2 = (int*) malloc(nRooms * sizeof(*bufferSec1));
+  bufferSec1 = (bufferData*) malloc((size-1) * sizeof(*bufferSec1));
+  bufferSec2 = (int*) malloc((size-1) * sizeof(*bufferSec1));
   int i;
-  for (i = 0; i < nRooms; i++){
+  for (i = 0; i < size - 1; i++){
     bufferSec1[i].clock = -1;
     bufferSec2[i] = -1;
   }
 
   if (argc < 4)
   {
+    if(CLOCK_DISPLAY) printf("%ld ",clock());
     printf("Nie podano wszystkich parametrow!\n");
   }
   else if(!check_parameters_correctness(nRooms, nWomen, nMen)) //int s, int k, int m
   {
+    if(CLOCK_DISPLAY) printf("%ld ",clock());
     printf("Podane parametry nie spełniają podstawowych założeń!\nK+M/S >=1\nK>=1   M>=1   S>=1\n");
   }
   else{
 
     /////////////////////////INICJATOR
     if (rank == 0){
+      if(CLOCK_DISPLAY) printf("%ld ",clock());
       printf("Liczba staruszek: %d, liczba staruszków: %d, liczba sal: %d\n", nWomen, nMen, nRooms);
       initialize(nRooms, rank, size, nWomen, nMen);
     }
@@ -164,42 +179,13 @@ int main (int argc, char **argv){
       Room *rooms;
       rooms = (Room*) malloc(nRooms * sizeof(*rooms));
       get_sizes_rooms(rooms, nRooms, &status);
-
+			if(CLOCK_DISPLAY) printf("%ld ",clock());
       printf("[ID: %d]Pojemności sal: ", rank);
       int i;
       for (i = 0; i < nRooms; i++){  
         printf("%d ", rooms[i].size);
       }
       printf("\n");
-
-      /*fork - podzial na proces czytajacy i proces wykonujacy dostepy do sekcji
-       *Dostep do pierwszej sekcji krytycznej - wybor sali (kazdy ma swoje preferencje co do sali ustalone
-       *przez funkcje %rank. algorytm agrawala (kazdy proces ma swoj zegar)
-       *
-       *
-       *
-       *TAGI: init, req_room, req_people, ans_room, ans_people
-       *init: tablica pojemnosci sal
-       * req_room: zegar, nr sali
-       * req_people: zegar
-       * ans_room: zegar, zgoda
-       * ans_people: zegar, zgoda
-       *
-       *
-       *
-       *animator:
-       *  zegar,
-       *  lista typkow ktorym musimy dac odpowiedz
-       *  ile razy staramy sie o maksymalne wypelnienie sali zanim ropoczniemy sex
-       *  liczba otrzymanych zgod
-       *  preferencje co do sal(funkcja od rank)
-       *
-       *sekcje:
-       *  1 dla k+m
-       *  s sekcji sal: kolejnosc przydzielania -zgody, zegar, preferencje(funkcja), rank(id)
-       *  
-       *
-       */
       int semid_sec1 = get_semaphores(rank, 1);
       int semid_sec2 = get_semaphores(size+rank, 1);
       pthread_t readerThread;
@@ -207,13 +193,12 @@ int main (int argc, char **argv){
       parameters.rank = rank;
       parameters.size = size;
       parameters.nRooms = nRooms;
-      //parameters.clock = &clock;
       parameters.semid_sec1 = semid_sec1;
       parameters.semid_sec2 = semid_sec2;
       parameters.rooms = rooms;
-      //parameters.ack1Collected = &ack1Collected;
-      pthread_mutex_init(&(parameters.mutex), NULL);
+      //pthread_mutex_init(&(parameters.mutex), NULL);
       if (pthread_create(&readerThread, NULL, reader, &parameters)){
+        if(CLOCK_DISPLAY) printf("%ld ",clock());
         printf("Błąd tworzenia wątka.\n");
         abort();
       }
@@ -227,22 +212,23 @@ int main (int argc, char **argv){
         ////////////////////////////////WSTEP DO SEKCJI 1
         for (i = 0; i < 3; i++){
           for (j = 0; j < nRooms; j++){
-
             //ustawienie kolejnego pokoju
             sem_down(semid_sec1, 0);
             int k;
-            for (k = 0; k < nRooms; k++){
-              if (bufferSec1[i].clock > -1){
+            for (k = 0; k < (size-1); k++){
+              if (bufferSec1[k].clock > -1){
                 int data[3];
                 data[0] = bufferSec1[k].clock;
                 data[1] = myRoom;
                 data[2] = bufferSec1[k].epochNo;
-                MPI_Send(data, sizeof(data), MPI_INT, status.MPI_SOURCE, ROOM_ACK, MPI_COMM_WORLD);
+                MPI_Send(data, sizeof(data), MPI_INT, k, ROOM_ACK, MPI_COMM_WORLD); //================k
                 bufferSec1[k].clock = -1; //czyszczenie bufora;
-                //printf("[ID: %d][SKECJA 1] %d.\n", rank, myRoom);
+                //printf("[ID: %d][SKEJCA 1] %d.\n", rank, myRoom);
               }
             }
             myRoom = preferencesArray[j].room;
+            //printf("ZERUJE");
+            ack1Counter = 0;
             sem_up(semid_sec1, 0);
 
             //wyslanie requesta
@@ -252,16 +238,19 @@ int main (int argc, char **argv){
               data[1] = preferencesArray[j].room;
               data[2] = epochNo;
               send_to_all(rank, data, sizeof(data), ROOM_REQ, size);
+              if(CLOCK_DISPLAY) printf("%ld ",clock());
               printf("[CLOCK: %d][ID: %d][SKECJA 1]Żądam dostępu do sali %d.\n", sectionClock, rank, myRoom);
             }
 
             //czekanie na zgody
             sleep(5);
             if (ack1Collected){
+            	if(CLOCK_DISPLAY) printf("%ld ",clock());
               printf("[CLOCK: %d][ID: %d][SKECJA 1]Uzyskałem dostęp do sali %d.\n", sectionClock, rank, preferencesArray[j].room);
               roomAchieved = true;
               sectionClock++;//1 punkt osiagniety
-              ack2Counter = 0;
+              //ack2Counter = 0;
+              ack1Counter = 0;
               break;
             }
             //printf("[ID: %d][SKECJA 1]TEST1 %d.\n", rank, preferencesArray[j].room);
@@ -272,7 +261,9 @@ int main (int argc, char **argv){
           }
           epochNo++;
         }
+        
         if (!roomAchieved){
+          if(CLOCK_DISPLAY) printf("%ld ",clock());
           printf("[CLOCK: %d][ID: %d][SEKCJA 1]Nie udało się uzyskać dostępu do żadnej sali.\n", sectionClock, rank);
           sleep(5);
           continue;
@@ -280,6 +271,7 @@ int main (int argc, char **argv){
         ////////////////////////////////SEKCJA 1
 
         ////////////////////////////////WSTEP DO SEKCJI 2
+        ack2Counter = 0;
         sec2Apply = true;
         for (i = 1; i < 4; i++){
           peopleReqNo = i;
@@ -290,6 +282,7 @@ int main (int argc, char **argv){
           //MPI_Send(&sectionClock, sizeof(int*), MPI_INT, status.MPI_SOURCE, PEOPLE_REQ, MPI_COMM_WORLD);
           sleep(2);
           if (ack2Collected){
+            if(CLOCK_DISPLAY) printf("%ld ",clock());
             printf("[CLOCK: %d][ID: %d][SKECJA 2]Uzyskałem dostęp do ludzików.\n", sectionClock, rank);
             peopleAchieved = true;
             peopleReqNo = -1;  
@@ -301,70 +294,75 @@ int main (int argc, char **argv){
         }
         if (!peopleAchieved){
           sem_down(semid_sec1, 0);
-          for (i = 0; i < nRooms; i++){
+          for (i = 0; i < (size - 1); i++){
             if (bufferSec1[i].clock > -1){
               int data[3];
               data[0] = bufferSec1[i].clock;
               data[1] = myRoom;
               data[2] = bufferSec1[i].epochNo;
-              MPI_Send(data, sizeof(data), MPI_INT, status.MPI_SOURCE, ROOM_ACK, MPI_COMM_WORLD);
+              MPI_Send(data, sizeof(data), MPI_INT, i, ROOM_ACK, MPI_COMM_WORLD);
             }
           }
           sec2Apply = false;
           ack1Collected = false;
+          ack2Counter = 0;
           sem_up(semid_sec1, 0);
           
 
-          for (i = 0; i < nRooms; i++){
+          for (i = 0; i < (size - 1); i++){
             if (bufferSec2[i] > -1){
               int data[3];
               data[0] = bufferSec2[i];
-              MPI_Send(data, sizeof(data), MPI_INT, status.MPI_SOURCE, PEOPLE_ACK, MPI_COMM_WORLD);
+              MPI_Send(data, sizeof(data), MPI_INT, i, PEOPLE_ACK, MPI_COMM_WORLD);
               bufferSec2[i] = -1; //czyszczenie bufora;
             }
           }
-
+          if(CLOCK_DISPLAY) printf("%ld ",clock());
           printf("[CLOCK: %d][ID: %d][SEKCJA 2]Nie udało się uzyskać dostępu do ludzików. Zwalniam sale: %d \n", sectionClock, rank, myRoom);
           myRoom = -1;
           //zwolnic sale!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           sleep(2);
           continue;
         }
-        //
         ////////////////////////////////SEKCJA 2
         if ((nWomen > 0) && (nMen > 0)){
           int *assignedPeople = assign_people(nWomen, nMen, rooms[myRoom].size);
+          sem_down(semid_sec2, 0);
           myWomen = assignedPeople[0];
           myMen = assignedPeople[1];
           nWomen -= myWomen;
           nMen -= myMen;
+          if(CLOCK_DISPLAY) printf("%ld ",clock());
           printf("[CLOCK: %d][ID: %d][SEKCJA 2]Uzyskałem: %d kobiet, %d mężczyzn.\n", sectionClock, rank, myWomen, myMen);
           int data[3];
           data[0] = nWomen;
           data[1] = nMen;
           send_to_all(rank, data, sizeof(data), PEOPLE_NEW_VALUE, size);
-          for (i = 0; i < nRooms; i++){
+          for (i = 0; i < (size-1); i++){
             if (bufferSec2[i] > -1){
               int data[3];
               data[0] = bufferSec2[i];
-              MPI_Send(data, sizeof(data), MPI_INT, status.MPI_SOURCE, PEOPLE_ACK, MPI_COMM_WORLD);
+              MPI_Send(data, sizeof(data), MPI_INT, i, PEOPLE_ACK, MPI_COMM_WORLD);
               bufferSec2[i] = -1; //czyszczenie bufora;
             }
           }
           inSec2 = false;
           ack2Collected = false;
+          ack2Counter = 0;
+          printf("[CLOCK: %d][ID: %d][SKECJA 2] Zwalniam ludziki.\n", sectionClock, rank);
           sem_up(semid_sec2, 0);
         }
         else{
+        	if(CLOCK_DISPLAY) printf("%ld ",clock());
           printf("[CLOCK: %d][ID: %d][SEKCJA 2]BRAK ludzikow\n", sectionClock, rank);
           sem_down(semid_sec1, 0);
-          for (i = 0; i < nRooms; i++){
+          for (i = 0; i < (size-1); i++){
             if (bufferSec1[i].clock > -1){
               int data[3];
               data[0] = bufferSec1[i].clock;
               data[1] = myRoom;
               data[2] = bufferSec1[i].epochNo;
-              MPI_Send(data, sizeof(data), MPI_INT, status.MPI_SOURCE, ROOM_ACK, MPI_COMM_WORLD);
+              MPI_Send(data, sizeof(data), MPI_INT, i, ROOM_ACK, MPI_COMM_WORLD);
             }
           }
           sec2Apply = false;
@@ -372,15 +370,15 @@ int main (int argc, char **argv){
           sem_up(semid_sec1, 0);
           
 
-          for (i = 0; i < nRooms; i++){
+          for (i = 0; i < (size-1); i++){
             if (bufferSec2[i] > -1){
               int data[3];
               data[0] = bufferSec2[i];
-              MPI_Send(data, sizeof(data), MPI_INT, status.MPI_SOURCE, PEOPLE_ACK, MPI_COMM_WORLD);
+              MPI_Send(data, sizeof(data), MPI_INT, i, PEOPLE_ACK, MPI_COMM_WORLD);
               bufferSec2[i] = -1; //czyszczenie bufora;
             }
           }
-
+					if(CLOCK_DISPLAY) printf("%ld ",clock());
           printf("[CLOCK: %d][ID: %d][SEKCJA 2]Nie udało się uzyskać dostępu do ludzików. Zwalniam sale: %d \n", sectionClock, rank, myRoom);
           myRoom = -1;
           //zwolnic sale!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -389,22 +387,12 @@ int main (int argc, char **argv){
         }
 
 
-
-
-
-
-
-        /////
         //TRWA ORGIA
+        if(CLOCK_DISPLAY) printf("%ld ",clock());
         printf("[CLOCK: %d][ID: %d][SEKCJA 2]Trwa orgia...\n", sectionClock, rank);
         sleep(5);
         
-        
-        
-        
-        
-        
-        
+
         ////////////////////////////////WSTEP DO SEKCJI 2
         sec2Apply = true;
         i = 0;
@@ -415,56 +403,23 @@ int main (int argc, char **argv){
           int data[3];
           data[0] = sectionClock;
           data[1] = RELEASE;
+          if(CLOCK_DISPLAY) printf("%ld ",clock());
           printf("[CLOCK: %d][ID: %d][SKECJA 2]WYSYŁAM ŻĄDANIE NA WYJŚCIU.\n", sectionClock, rank);
           send_to_all(rank, data, sizeof(data), PEOPLE_REQ, size);
           //MPI_Send(&sectionClock, sizeof(int*), MPI_INT, status.MPI_SOURCE, PEOPLE_REQ, MPI_COMM_WORLD);
           sleep(2);
           if (ack2Collected){
+          	if(CLOCK_DISPLAY) printf("%ld ",clock());
             printf("[CLOCK: %d][ID: %d][SKECJA 2]Uzyskałem dostęp do ludzików.\n", sectionClock, rank);
             peopleAchieved = true;
             peopleReqNo = -1;  
             sectionClock++;//2 punkt osiagniety
             sec2Apply = false;
+            ack2Counter = 0;
             //inSec2 = true;
             break;
           }
         }
-        if (!peopleAchieved){
-          /*sem_down(semid_sec1, 0);
-          for (i = 0; i < nRooms; i++){
-            if (bufferSec1[i].clock > -1){
-              int data[3];
-              data[0] = bufferSec1[i].clock;
-              data[1] = myRoom;
-              data[2] = bufferSec1[i].epochNo;
-              MPI_Send(data, sizeof(data), MPI_INT, status.MPI_SOURCE, ROOM_ACK, MPI_COMM_WORLD);
-            }
-          }
-          sec2Apply = false;
-          ack1Collected = false;
-          sem_up(semid_sec1, 0);
-          
-
-          for (i = 0; i < nRooms; i++){
-            if (bufferSec2[i] > -1){
-              int data[3];
-              data[0] = bufferSec2[i];
-              MPI_Send(data, sizeof(data), MPI_INT, status.MPI_SOURCE, PEOPLE_ACK, MPI_COMM_WORLD);
-              bufferSec2[i] = -1; //czyszczenie bufora;
-            }
-          }
-
-          printf("[CLOCK: %d][ID: %d][SEKCJA 2]Nie udało się uzyskać dostępu do ludzików. Zwalniam sale: %d \n", sectionClock, rank, myRoom);
-          myRoom = -1;
-          //zwolnic sale!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          sleep(2);
-          continue;*/
-        }
-        
-        
-        
-        
-        
         
         //WYJSCIE Z SEKCJI 2
         sem_down(semid_sec2, 0);
@@ -474,18 +429,20 @@ int main (int argc, char **argv){
         data[0] = nWomen;
         data[1] = nMen;
         send_to_all(rank, data, sizeof(data), PEOPLE_NEW_VALUE, size);
-        for (i = 0; i < nRooms; i++){
+        for (i = 0; i < (size-1); i++){
           if (bufferSec2[i] > -1){
             int data[3];
             data[0] = bufferSec2[i];
-            MPI_Send(data, sizeof(data), MPI_INT, status.MPI_SOURCE, PEOPLE_ACK, MPI_COMM_WORLD);
+            MPI_Send(data, sizeof(data), MPI_INT, i, PEOPLE_ACK, MPI_COMM_WORLD);
             bufferSec2[i] = -1; //czyszczenie bufora;
           }
         }
+        printf("[CLOCK: %d][ID: %d][SKECJA 2] Zwalniam ludziki.\n", sectionClock, rank);
         inSec2 = false;
         ack2Collected = false;
         sem_up(semid_sec2, 0);
-        printf("[CLOCK: %d][ID: %d][SEKCJA 2]Wyszedłem\n", sectionClock, rank);
+        if(CLOCK_DISPLAY) printf("%ld ",clock());
+        printf("[CLOCK: %d][ID: %d][SEKCJA 2] Wyszedłem\n", sectionClock, rank);
         ////////////////////////////KONIEC SEKCJI 2
         
         
@@ -498,18 +455,19 @@ int main (int argc, char **argv){
         ///WYJSCIE Z SEKCJI 1
         //tu  powinien byc semafor
         sem_down(semid_sec1, 0);
-        for (i = 0; i < nRooms; i++){
+        for (i = 0; i < (size-1); i++){
           if (bufferSec1[i].clock > -1){
             int data[3];
             data[0] = bufferSec1[i].clock;
             data[1] = myRoom;
             data[2] = bufferSec1[i].epochNo;
-            MPI_Send(data, sizeof(data), MPI_INT, status.MPI_SOURCE, ROOM_ACK, MPI_COMM_WORLD);
+            MPI_Send(data, sizeof(data), MPI_INT, i, ROOM_ACK, MPI_COMM_WORLD);
           }
         }
         ack1Collected = false;
         myRoom = -1;
         sem_up(semid_sec1, 0);
+        if(CLOCK_DISPLAY) printf("%ld ",clock());
         printf("[CLOCK: %d][ID: %d][SEKCJA 1]Wyszedłem\n", sectionClock, rank);
         //
       }

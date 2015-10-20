@@ -30,4 +30,8 @@
 #define APPLY 0
 #define RELEASE 1
 
+#define CLOCK_DISPLAY 1
+#define ACK_DISPLAY 1
+#define REQ_DISPLAY 0
+
 #endif

@@ -38,8 +38,8 @@ Room* generate_rooms(int s, int k, int m)
   rooms = (Room*) malloc(s * sizeof(*rooms));
   int i=0;
   printf("m: %d      k: %d     s: %d \n", k, m, s );
-  int min_size = (int)ceil((((float)m+(float)k)/(float)s)*(((float)s+1)/(float)s));
-  int max_size = (int)ceil((((float)m+(float)k)/(float)s)*(((float)s+3)/(float)s));
+  int min_size = (int)ceil((((float)m+(float)k)/(float)s)*(((float)s-1)/(float)s));
+  int max_size = (int)ceil((((float)m+(float)k)/(float)s)*(((float)s+1)/(float)s));
   int room_size;
   srand (time(NULL));
   printf("Min size of room: %d\nMax size of room: %d\n", min_size, max_size);

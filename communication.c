@@ -1,15 +1,12 @@
 #include "communication.h"
 
 
- 
 void end(){
   printf("---------------ZAKOŃCZENIE DZIAŁANIA PROGRAMU--------------\n");
   //free(rooms);
   MPI_Finalize();
   exit(0);
 }
- 
-
  
 void send_to_all(int rank, int* data, int count, int tag, int size){
   int i = 0;
@@ -20,11 +17,6 @@ void send_to_all(int rank, int* data, int count, int tag, int size){
     }
   }
 }
-
-
-
-
-
 
 void get_sizes_rooms(Room *rooms, int nRooms, MPI_Status* status){
   //MPI_Recv(rooms, nRooms, MPI_INT, 0, INIT, MPI_COMM_WORLD, status);
